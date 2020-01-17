@@ -66,7 +66,12 @@ class OpenstackCeilometerEventMonitor < OpenstackEventMonitor
       else
         with_a_timezone('UTC') do
           last_seen = events.last.generated unless events.empty?
-          @since = (Time.zone.parse(last_seen) - event_backread_seconds).iso8601 if last_seen
+          # Safeguard against the case where last_seen isn't far enough in the future
+          # relative to last query's @since
+          if last_seen
+            psince = (Time.zone.parse(last_seen) - event_backread_seconds).iso8601
+            @since = (psince > @since) ? psince : last_seen
+          end
         end
       end
 
